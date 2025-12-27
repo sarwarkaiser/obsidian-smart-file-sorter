@@ -15,7 +15,7 @@
 		"automation",
 		"file-management"
 	],
-	"author": "",
+	"author": "Sarwar Kaiser",
 	"license": "MIT",
 	"devDependencies": {
 		"@types/node": "^16.11.6",

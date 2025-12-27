@@ -4,7 +4,7 @@
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
 	"description": "Automatically organize files into folders based on properties, tags, and metadata",
-	"author": "Your Name",
-	"authorUrl": "https://github.com/yourusername",
+	"author": "Sarwar Kaiser",
+	"authorUrl": "https://github.com/sarwarkaiser",
 	"isDesktopOnly": false
 }
