@@ -28,20 +28,7 @@ export interface PluginSettings {
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {
-	rules: [
-		{
-			id: crypto.randomUUID(),
-			name: 'Example: Soccer files',
-			enabled: false,
-			destinationFolder: 'Topics/Soccer',
-			createSubfolders: false,
-			propertyName: 'topic',
-			propertyValue: 'soccer',
-			matchType: 'equals',
-			caseSensitive: false,
-			useTags: false
-		}
-	],
+	rules: [],
 	enableAutoSort: false,
 	sortOnModify: true,
 	sortOnCreate: true,

@@ -204,7 +204,9 @@ export class FileSorter {
 			// Check if a file already exists at destination
 			const existingFile = this.app.vault.getAbstractFileByPath(newPath);
 			if (existingFile && existingFile !== file) {
-				console.warn(`File already exists at destination: ${newPath}`);
+				if (this.verboseLogging) {
+					console.warn(`File already exists at destination: ${newPath}`);
+				}
 				new Notice(`Cannot move ${file.name}: file already exists at destination`);
 				return false;
 			}
@@ -218,8 +220,9 @@ export class FileSorter {
 
 			return true;
 		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : String(error);
 			console.error(`Error moving file ${file.path}:`, error);
-			new Notice(`Error moving file ${file.name}: ${error.message}`);
+			new Notice(`Error moving file ${file.name}: ${errorMessage}`);
 			return false;
 		}
 	}

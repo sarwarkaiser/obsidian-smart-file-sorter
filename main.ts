@@ -69,6 +69,21 @@ export default class SmartFileSorterPlugin extends Plugin {
 	}
 
 	private registerEventHandlers(): void {
+		// Handle metadata cache changes (for file modifications)
+		// This ensures the frontmatter is parsed before we try to read it
+		this.registerEvent(
+			this.app.metadataCache.on('changed', (file) => {
+				if (
+					this.settings.enableAutoSort &&
+					this.settings.sortOnModify &&
+					file instanceof TFile &&
+					file.extension === 'md'
+				) {
+					this.autoSortFile(file);
+				}
+			})
+		);
+
 		// Handle file creation
 		this.registerEvent(
 			this.app.vault.on('create', (file) => {
@@ -80,21 +95,6 @@ export default class SmartFileSorterPlugin extends Plugin {
 				) {
 					// Delay to ensure metadata is loaded
 					setTimeout(() => this.autoSortFile(file), 1000);
-				}
-			})
-		);
-
-		// Handle file modification
-		this.registerEvent(
-			this.app.vault.on('modify', (file) => {
-				if (
-					this.settings.enableAutoSort &&
-					this.settings.sortOnModify &&
-					file instanceof TFile &&
-					file.extension === 'md'
-				) {
-					// Delay to ensure metadata is updated
-					setTimeout(() => this.autoSortFile(file), 500);
 				}
 			})
 		);
@@ -214,7 +214,8 @@ export default class SmartFileSorterPlugin extends Plugin {
 			new Notice(summary, 5000);
 		} catch (error) {
 			progressNotice.hide();
-			new Notice(`Error sorting files: ${error.message}`);
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			new Notice(`Error sorting files: ${errorMessage}`);
 			console.error('Error sorting all files:', error);
 		}
 	}
@@ -256,7 +257,8 @@ export default class SmartFileSorterPlugin extends Plugin {
 
 			new Notice(summary, 5000);
 		} catch (error) {
-			new Notice(`Error sorting folder: ${error.message}`);
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			new Notice(`Error sorting folder: ${errorMessage}`);
 			console.error('Error sorting folder:', error);
 		}
 	}
