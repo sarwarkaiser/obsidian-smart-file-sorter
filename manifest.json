@@ -1,7 +1,7 @@
 {
 	"id": "smart-file-sorter",
 	"name": "Smart File Sorter",
-	"version": "1.1.0",
+	"version": "1.1.1",
 	"minAppVersion": "0.15.0",
 	"description": "Automatically organize files into folders based on properties, tags, and metadata",
 	"author": "Sarwar Kaiser",
