@@ -27,7 +27,24 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           tag="${GITHUB_REF#refs/tags/}"
+
+          # Read version from manifest
+          version=$(cat manifest.json | jq -r '.version')
+
+          # Create release notes
+          cat > release_notes.md << 'EOF'
+          ## Installation
+
+          1. Download `main.js`, `manifest.json`, and `styles.css`
+          2. Create folder `.obsidian/plugins/smart-file-sorter/` in your vault
+          3. Place all files in that folder
+          4. Reload Obsidian
+          5. Enable the plugin in Settings → Community Plugins
+
+          See the [README](https://github.com/sarwarkaiser/obsidian-smart-file-sorter) for complete documentation and usage examples.
+          EOF
+
           gh release create "$tag" \
-            --title="$tag" \
-            --draft \
-            main.js manifest.json
+            --title="v${version}" \
+            --notes-file release_notes.md \
+            main.js manifest.json styles.css
