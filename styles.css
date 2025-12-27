@@ -1,0 +1,21 @@
+/* Smart File Sorter Plugin Styles */
+
+.smart-file-sorter-rule {
+    margin-bottom: 0.5rem;
+    border-left: 2px solid var(--interactive-accent);
+    padding-left: 0.5rem;
+}
+
+.match-fields-container,
+.subfolder-container {
+    margin-top: 0.5rem;
+}
+
+.modal-button-container {
+    margin-top: 1rem;
+}
+
+.modal-button-container .setting-item {
+    border-top: none;
+    padding-top: 0;
+}
