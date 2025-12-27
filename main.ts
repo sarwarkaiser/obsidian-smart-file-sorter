@@ -66,6 +66,13 @@ export default class SmartFileSorterPlugin extends Plugin {
 			name: 'Show move history',
 			callback: () => this.showMoveHistory()
 		});
+
+		// Command: Auto-generate rules from vault
+		this.addCommand({
+			id: 'auto-generate-rules',
+			name: 'Auto-generate rules from vault',
+			callback: () => this.autoGenerateRules()
+		});
 	}
 
 	private registerEventHandlers(): void {
@@ -305,6 +312,138 @@ export default class SmartFileSorterPlugin extends Plugin {
 		if (this.settings.verboseLogging) {
 			console.log('File moved:', operation);
 		}
+	}
+
+	private async autoGenerateRules(): Promise<void> {
+		const files = this.app.vault.getMarkdownFiles();
+		const propertyValues = new Map<string, Set<string>>();
+		const tags = new Set<string>();
+
+		// Scan all files for properties and tags
+		new Notice('Scanning vault for properties and tags...');
+
+		for (const file of files) {
+			const cache = this.app.metadataCache.getFileCache(file);
+
+			if (cache?.frontmatter) {
+				// Collect all property values
+				for (const [key, value] of Object.entries(cache.frontmatter)) {
+					if (key === 'position' || key === 'tags') continue; // Skip meta properties
+
+					if (!propertyValues.has(key)) {
+						propertyValues.set(key, new Set());
+					}
+
+					if (value && typeof value === 'string') {
+						propertyValues.get(key)!.add(value);
+					} else if (Array.isArray(value)) {
+						value.forEach(v => {
+							if (v && typeof v === 'string') {
+								propertyValues.get(key)!.add(v);
+							}
+						});
+					}
+				}
+			}
+
+			// Collect tags
+			if (cache?.tags) {
+				cache.tags.forEach(tag => {
+					const cleanTag = tag.tag.replace(/^#/, '');
+					tags.add(cleanTag);
+				});
+			}
+
+			// Also get frontmatter tags
+			if (cache?.frontmatter?.tags) {
+				const fmTags = cache.frontmatter.tags;
+				if (Array.isArray(fmTags)) {
+					fmTags.forEach(t => tags.add(String(t).replace(/^#/, '')));
+				} else if (typeof fmTags === 'string') {
+					tags.add(fmTags.replace(/^#/, ''));
+				}
+			}
+		}
+
+		// Generate UUID helper
+		const generateUUID = (): string => {
+			if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+				return crypto.randomUUID();
+			}
+			return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+				const r = (Math.random() * 16) | 0;
+				const v = c === 'x' ? r : (r & 0x3) | 0x8;
+				return v.toString(16);
+			});
+		};
+
+		// Generate rules for common properties
+		const newRules = [];
+		const commonProperties = ['topic', 'category', 'type', 'project', 'status'];
+
+		for (const [propName, values] of propertyValues) {
+			if (commonProperties.includes(propName.toLowerCase()) || values.size >= 2) {
+				// Create a rule for each unique value
+				for (const value of values) {
+					const folderName = value.charAt(0).toUpperCase() + value.slice(1);
+					newRules.push({
+						id: generateUUID(),
+						name: `${propName}: ${value}`,
+						enabled: true,
+						destinationFolder: `${propName.charAt(0).toUpperCase() + propName.slice(1)}/${folderName}`,
+						createSubfolders: false,
+						propertyName: propName,
+						propertyValue: value,
+						matchType: 'equals' as const,
+						caseSensitive: false,
+						useTags: false
+					});
+				}
+			}
+		}
+
+		// Generate rules for popular tags (tags used more than once)
+		const tagCounts = new Map<string, number>();
+		for (const file of files) {
+			const cache = this.app.metadataCache.getFileCache(file);
+			if (cache?.tags) {
+				cache.tags.forEach(tag => {
+					const cleanTag = tag.tag.replace(/^#/, '');
+					tagCounts.set(cleanTag, (tagCounts.get(cleanTag) || 0) + 1);
+				});
+			}
+		}
+
+		for (const [tag, count] of tagCounts) {
+			if (count >= 2) { // Only create rules for tags used multiple times
+				const folderName = tag.split('/').pop()!; // Get last part of nested tag
+				const capitalizedFolder = folderName.charAt(0).toUpperCase() + folderName.slice(1);
+				newRules.push({
+					id: generateUUID(),
+					name: `Tag: ${tag}`,
+					enabled: true,
+					destinationFolder: `Tags/${capitalizedFolder}`,
+					createSubfolders: false,
+					propertyName: 'tags',
+					propertyValue: tag,
+					matchType: 'equals' as const,
+					caseSensitive: false,
+					useTags: true,
+					tagValue: tag
+				});
+			}
+		}
+
+		if (newRules.length === 0) {
+			new Notice('No properties or tags found to generate rules from');
+			return;
+		}
+
+		// Add new rules to settings
+		this.settings.rules = newRules;
+		await this.saveSettings();
+
+		new Notice(`Generated ${newRules.length} rules! Check Settings → Smart File Sorter to review and adjust.`, 7000);
 	}
 
 	private isFileExcluded(file: TFile): boolean {
